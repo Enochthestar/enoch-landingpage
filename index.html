@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enoch — Property Management, Automated</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green: #1D9E75;
+  --green-light: #E1F5EE;
+  --green-dark: #0F6E56;
+  --green-glow: rgba(29,158,117,0.15);
+  --bg: #06100D;
+  --bg2: #0C1A15;
+  --bg3: #111F18;
+  --white: #ffffff;
+  --text: #F0FBF6;
+  --text-muted: #7A9E8E;
+  --border: rgba(29,158,117,0.15);
+  --card-bg: rgba(15,30,22,0.8);
+  --radius: 14px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 0 5%;
+  height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(6,16,13,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.nav-logo-mark {
+  width: 34px; height: 34px; background: var(--green);
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+}
+.nav-logo-mark svg { width: 18px; height: 18px; stroke: white; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.nav-logo-name { font-size: 18px; font-weight: 700; color: var(--white); letter-spacing: -0.4px; }
+
+.nav-links { display: flex; align-items: center; gap: 32px; }
+.nav-links a { font-size: 14px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+
+.nav-cta {
+  background: var(--green); color: white;
+  border: none; border-radius: 8px;
+  padding: 9px 20px; font-size: 14px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: background 0.2s, transform 0.1s;
+  text-decoration: none;
+}
+.nav-cta:hover { background: var(--green-dark); }
+.nav-cta:active { transform: scale(0.98); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 5% 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(29,158,117,0.12) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -60%);
+  pointer-events: none;
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -60%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -60%) scale(1.08); }
+}
+
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(29,158,117,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(29,158,117,0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.3);
+  border-radius: 20px; padding: 6px 16px;
+  font-size: 13px; font-weight: 500; color: var(--green);
+  margin-bottom: 28px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.hero-badge-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero-title {
+  font-size: clamp(38px, 6vw, 72px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  color: var(--white);
+  margin-bottom: 20px;
+  animation: fadeUp 0.7s ease 0.1s both;
+}
+
+.hero-title .accent {
+  background: linear-gradient(135deg, #1D9E75, #4ECBA3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--text-muted);
+  max-width: 540px;
+  margin: 0 auto 40px;
+  line-height: 1.7;
+  animation: fadeUp 0.7s ease 0.2s both;
+}
+
+.hero-buttons {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp 0.7s ease 0.3s both;
+}
+
+.btn-primary {
+  background: var(--green); color: white;
+  border: none; border-radius: 10px;
+  padding: 14px 28px; font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 8px;
+  text-decoration: none;
+}
+.btn-primary:hover { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(29,158,117,0.3); }
+
+.btn-secondary {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 28px; font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: all 0.2s; text-decoration: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.btn-secondary:hover { border-color: var(--green); color: var(--green); }
+
+.hero-stats {
+  display: flex; align-items: center; gap: 40px;
+  margin-top: 64px; flex-wrap: wrap; justify-content: center;
+  animation: fadeUp 0.7s ease 0.4s both;
+}
+
+.hero-stat-num { font-size: 28px; font-weight: 700; color: var(--white); letter-spacing: -0.5px; }
+.hero-stat-lbl { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.hero-stat-div { width: 1px; height: 36px; background: var(--border); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── SECTION ── */
+section { padding: 100px 5%; position: relative; }
+.section-inner { max-width: 1100px; margin: 0 auto; }
+
+.section-eyebrow {
+  display: inline-block; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--green); margin-bottom: 14px;
+}
+
+.section-title {
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 700; letter-spacing: -1px;
+  color: var(--white); margin-bottom: 16px; line-height: 1.2;
+}
+
+.section-sub {
+  font-size: 17px; color: var(--text-muted);
+  max-width: 520px; line-height: 1.7;
+}
+
+/* ── PROBLEM SECTION ── */
+.problem-section { background: var(--bg2); }
+
+.problem-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; margin-top: 48px;
+}
+
+.problem-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: all 0.3s;
+  cursor: default;
+}
+
+.problem-card:hover {
+  border-color: rgba(29,158,117,0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+}
+
+.problem-icon {
+  width: 42px; height: 42px;
+  background: rgba(29,158,117,0.1);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px;
+}
+
+.problem-icon svg { width: 20px; height: 20px; stroke: var(--green); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.problem-title { font-size: 15px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
+.problem-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+/* ── HOW IT WORKS ── */
+.how-steps {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0; margin-top: 56px; position: relative;
+}
+
+.how-step {
+  padding: 32px 28px;
+  border: 1px solid var(--border);
+  border-right: none;
+  background: var(--card-bg);
+  position: relative;
+  transition: background 0.3s;
+}
+
+.how-step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.how-step:last-child { border-right: 1px solid var(--border); border-radius: 0 var(--radius) var(--radius) 0; }
+.how-step:hover { background: rgba(29,158,117,0.06); }
+
+.how-num {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--green); text-transform: uppercase; margin-bottom: 16px;
+}
+
+.how-arrow {
+  position: absolute; right: -14px; top: 50%;
+  transform: translateY(-50%);
+  width: 28px; height: 28px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+
+.how-arrow svg { width: 12px; height: 12px; stroke: var(--green); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.how-step:last-child .how-arrow { display: none; }
+.how-step-title { font-size: 15px; font-weight: 600; color: var(--white); margin-bottom: 6px; }
+.how-step-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+/* ── FEATURES ── */
+.features-section { background: var(--bg3); }
+
+.features-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px; margin-top: 56px;
+}
+
+.feature-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px;
+  transition: all 0.3s; position: relative; overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  opacity: 0; transition: opacity 0.3s;
+}
+
+.feature-card:hover::before { opacity: 1; }
+.feature-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(29,158,117,0.2); }
+
+.feature-icon {
+  width: 46px; height: 46px;
+  background: rgba(29,158,117,0.1); border: 1px solid rgba(29,158,117,0.2);
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+
+.feature-icon svg { width: 22px; height: 22px; stroke: var(--green); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.feature-title { font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 8px; }
+.feature-desc { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+
+/* ── LIVE DEMO ── */
+.demo-section { background: var(--bg2); }
+
+.demo-wrapper {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 48px; align-items: center; margin-top: 56px;
+}
+
+.demo-text .demo-item {
+  display: flex; gap: 16px; margin-bottom: 28px;
+  padding: 20px; border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer; transition: all 0.2s;
+}
+
+.demo-text .demo-item:hover,
+.demo-text .demo-item.active {
+  background: rgba(29,158,117,0.06);
+  border-color: rgba(29,158,117,0.2);
+}
+
+.demo-item-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(29,158,117,0.1);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+
+.demo-item-icon svg { width: 18px; height: 18px; stroke: var(--green); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.demo-item-title { font-size: 15px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+.demo-item-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+.demo-screen {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+.demo-screen-bar {
+  background: rgba(0,0,0,0.3);
+  padding: 12px 16px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-screen-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.demo-screen-content { padding: 20px; }
+
+.demo-notification {
+  background: rgba(29,158,117,0.08);
+  border: 1px solid rgba(29,158,117,0.2);
+  border-radius: 10px; padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex; gap: 12px; align-items: flex-start;
+  animation: slideIn 0.4s ease both;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; margin-top: 5px; }
+.notif-title { font-size: 13px; font-weight: 600; color: var(--white); margin-bottom: 2px; }
+.notif-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.notif-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.notif-urgent { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
+.notif-urgent .notif-dot { background: #EF4444; }
+
+/* ── PRICING ── */
+.pricing-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px; margin-top: 56px; align-items: start;
+}
+
+.pricing-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px;
+  transition: all 0.3s;
+}
+
+.pricing-card:hover { transform: translateY(-4px); }
+
+.pricing-card.featured {
+  border-color: var(--green);
+  background: rgba(29,158,117,0.06);
+  position: relative;
+}
+
+.featured-badge {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: white;
+  font-size: 11px; font-weight: 600; padding: 4px 14px;
+  border-radius: 20px; white-space: nowrap;
+}
+
+.pricing-tier { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+.pricing-amt { font-size: 36px; font-weight: 800; color: var(--white); letter-spacing: -1px; }
+.pricing-currency { font-size: 18px; vertical-align: super; font-weight: 500; }
+.pricing-period { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+.pricing-units { font-size: 13px; color: var(--text-muted); margin-top: 4px; margin-bottom: 24px; }
+.pricing-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+.pricing-feature {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.pricing-feature svg { width: 15px; height: 15px; stroke: var(--green); fill: none; stroke-width: 2.5; flex-shrink: 0; margin-top: 1px; }
+
+.pricing-btn {
+  width: 100%; padding: 12px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  font-family: inherit; margin-top: 24px; transition: all 0.2s;
+  border: none;
+}
+
+.pricing-btn-outline {
+  background: transparent; color: var(--green);
+  border: 1px solid rgba(29,158,117,0.4);
+}
+.pricing-btn-outline:hover { background: rgba(29,158,117,0.08); }
+
+.pricing-btn-solid { background: var(--green); color: white; }
+.pricing-btn-solid:hover { background: var(--green-dark); box-shadow: 0 8px 20px rgba(29,158,117,0.3); }
+
+/* ── TESTIMONIALS ── */
+.testimonials-section { background: var(--bg3); }
+
+.testimonials-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; margin-top: 48px;
+}
+
+.testimonial-card {
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 28px; transition: all 0.3s;
+}
+
+.testimonial-card:hover { border-color: rgba(29,158,117,0.3); transform: translateY(-2px); }
+
+.testimonial-stars { color: #F59E0B; font-size: 14px; margin-bottom: 14px; letter-spacing: 2px; }
+.testimonial-text { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 20px; font-style: italic; }
+.testimonial-author { display: flex; align-items: center; gap: 12px; }
+.testimonial-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(29,158,117,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: var(--green);
+}
+.testimonial-name { font-size: 14px; font-weight: 600; color: var(--white); }
+.testimonial-role { font-size: 12px; color: var(--text-muted); }
+
+/* ── CTA ── */
+.cta-section {
+  text-align: center; padding: 100px 5%;
+  background: var(--bg2); position: relative; overflow: hidden;
+}
+
+.cta-glow {
+  position: absolute; width: 500px; height: 300px;
+  background: radial-gradient(ellipse, rgba(29,158,117,0.1) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.cta-title { font-size: clamp(28px, 4vw, 48px); font-weight: 800; letter-spacing: -1.5px; color: var(--white); margin-bottom: 16px; }
+.cta-sub { font-size: 17px; color: var(--text-muted); margin-bottom: 36px; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px); z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  padding: 20px;
+}
+
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+
+.modal {
+  background: #0C1A15; border: 1px solid rgba(29,158,117,0.3);
+  border-radius: 20px; padding: 40px;
+  max-width: 480px; width: 100%;
+  transform: scale(0.95) translateY(10px);
+  transition: transform 0.3s;
+}
+
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+
+.modal-title { font-size: 22px; font-weight: 700; color: var(--white); margin-bottom: 6px; }
+.modal-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+
+.modal-field { margin-bottom: 16px; }
+.modal-field label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin-bottom: 6px; }
+.modal-field input, .modal-field select {
+  width: 100%; padding: 11px 14px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 9px; font-size: 14px; color: var(--white);
+  font-family: inherit; outline: none; transition: border-color 0.2s;
+}
+.modal-field input:focus, .modal-field select:focus { border-color: var(--green); }
+.modal-field input::placeholder { color: rgba(255,255,255,0.2); }
+.modal-field select option { background: #0C1A15; }
+
+.modal-submit {
+  width: 100%; padding: 13px; background: var(--green);
+  color: white; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  font-family: inherit; margin-top: 8px; transition: all 0.2s;
+}
+.modal-submit:hover { background: var(--green-dark); }
+
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: rgba(255,255,255,0.06); border: none; color: var(--text-muted);
+  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.modal-close:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+.modal { position: relative; }
+
+.modal-success { text-align: center; padding: 20px 0; display: none; }
+.modal-success-icon { font-size: 48px; margin-bottom: 12px; }
+.modal-success-title { font-size: 20px; font-weight: 700; color: var(--white); margin-bottom: 8px; }
+.modal-success-text { font-size: 14px; color: var(--text-muted); line-height: 1.6; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--bg); border-top: 1px solid var(--border);
+  padding: 40px 5%; text-align: center;
+}
+
+.footer-logo { display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 16px; }
+.footer-logo-mark { width: 28px; height: 28px; background: var(--green); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+.footer-logo-mark svg { width: 14px; height: 14px; stroke: white; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.footer-name { font-size: 16px; font-weight: 700; color: var(--white); }
+.footer-text { font-size: 13px; color: var(--text-muted); }
+.footer-links { display: flex; gap: 24px; justify-content: center; margin-top: 16px; }
+.footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--green); }
+
+/* ── SCROLL REVEAL ── */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .how-steps { grid-template-columns: 1fr; }
+  .how-step { border-right: 1px solid var(--border); border-bottom: none; border-radius: 0; }
+  .how-step:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .how-step:last-child { border-bottom: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); }
+  .how-arrow { display: none; }
+  .demo-wrapper { grid-template-columns: 1fr; }
+  .hero-stat-div { display: none; }
+  .hero-stats { gap: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <span class="nav-logo-name">Enoch</span>
+  </a>
+  <div class="nav-links">
+    <a href="#problems">Problems</a>
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <a class="nav-cta" href="#" onclick="openModal(); return false;">Book a demo</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-grid"></div>
+
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Now live across Nigeria & West Africa
+  </div>
+
+  <h1 class="hero-title">
+    Property management<br>
+    <span class="accent">without the chaos</span>
+  </h1>
+
+  <p class="hero-sub">
+    Enoch automates maintenance requests, tenant communication, and property tracking — so you can manage more properties with less stress.
+  </p>
+
+  <div class="hero-buttons">
+    <a class="btn-primary" href="https://enochthestar.github.io/enoch-form" target="_blank">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      See it live
+    </a>
+    <a class="btn-secondary" href="#" onclick="openModal(); return false;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      Book a demo
+    </a>
+  </div>
+
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-num">80%</div>
+      <div class="hero-stat-lbl">Less time on requests</div>
+    </div>
+    <div class="hero-stat-div"></div>
+    <div>
+      <div class="hero-stat-num">2hrs</div>
+      <div class="hero-stat-lbl">Response guarantee</div>
+    </div>
+    <div class="hero-stat-div"></div>
+    <div>
+      <div class="hero-stat-num">₦0</div>
+      <div class="hero-stat-lbl">Setup fee</div>
+    </div>
+    <div class="hero-stat-div"></div>
+    <div>
+      <div class="hero-stat-num">∞</div>
+      <div class="hero-stat-lbl">Requests tracked</div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEMS -->
+<section class="problem-section" id="problems">
+  <div class="section-inner">
+    <div class="reveal">
+      <span class="section-eyebrow">The problem</span>
+      <h2 class="section-title">Property managers waste hours<br>on things that should run themselves</h2>
+      <p class="section-sub">Every day, property managers in Lagos, Abuja, and across West Africa lose money and time to these avoidable problems.</p>
+    </div>
+
+    <div class="problem-grid reveal">
+      <div class="problem-card">
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.79a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="problem-title">Missed calls = missed money</div>
+        <div class="problem-desc">30–40% of tenant calls go unanswered during busy periods. Each missed request delays resolution and damages trust.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="problem-title">Scattered conversations</div>
+        <div class="problem-desc">Requests come in through WhatsApp, calls, and walk-ins. Nothing is tracked. Things fall through the cracks constantly.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="problem-title">Hours chasing vendors</div>
+        <div class="problem-desc">Calling plumbers, chasing electricians, following up on jobs — all done manually, over and over, every single day.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="problem-title">No paper trail</div>
+        <div class="problem-desc">When disputes arise, there's no record of what was reported, when, or how it was resolved. It's your word against theirs.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="problem-title">Late rent collections</div>
+        <div class="problem-desc">No automated reminders means tenants forget, managers chase, and cash flow suffers every month without fail.</div>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="problem-title">Tenant dissatisfaction</div>
+        <div class="problem-desc">Slow responses and zero communication updates drive good tenants away, increasing costly vacancy rates.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="background: var(--bg);">
+  <div class="section-inner">
+    <div class="reveal" style="text-align:center; margin-bottom: 0;">
+      <span class="section-eyebrow">How it works</span>
+      <h2 class="section-title">From request to resolution<br>in four simple steps</h2>
+    </div>
+
+    <div class="how-steps reveal">
+      <div class="how-step">
+        <div class="how-num">Step 01</div>
+        <div class="how-step-title">Tenant submits request</div>
+        <div class="how-step-desc">Via a professional web form — on any phone, no app download needed. They describe the issue and upload a photo.</div>
+        <div class="how-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">Step 02</div>
+        <div class="how-step-title">You get an instant alert</div>
+        <div class="how-step-desc">Email notification lands in your inbox immediately with all details — name, unit, issue type, urgency, and photo.</div>
+        <div class="how-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">Step 03</div>
+        <div class="how-step-title">Dashboard logs everything</div>
+        <div class="how-step-desc">Every request is automatically saved to your dashboard. Sort by urgency, filter by property, track status in real time.</div>
+        <div class="how-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">Step 04</div>
+        <div class="how-step-title">Issue gets resolved</div>
+        <div class="how-step-desc">Assign vendor, update status to Resolved. Full history saved forever. No calls, no WhatsApp chaos, no lost requests.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div class="section-inner">
+    <div class="reveal">
+      <span class="section-eyebrow">Features</span>
+      <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+      <p class="section-sub">Built specifically for property managers in Nigeria and West Africa — not adapted from a Western tool.</p>
+    </div>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg></div>
+        <div class="feature-title">Branded tenant form</div>
+        <div class="feature-desc">Professional maintenance request form under your brand. Tenants submit from any phone — no login, no app, no friction.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg></div>
+        <div class="feature-title">Instant email alerts</div>
+        <div class="feature-desc">The moment a tenant submits, you receive a detailed email with everything you need to take action — zero delay.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <div class="feature-title">Live manager dashboard</div>
+        <div class="feature-desc">See all requests across all your properties in one place. Filter by urgency, status, or issue type. Updated every 60 seconds.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+        <div class="feature-title">Automatic data logging</div>
+        <div class="feature-desc">Every submission is saved to Google Sheets automatically. Full history, exportable, shareable with property owners.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="feature-title">Urgency classification</div>
+        <div class="feature-desc">Tenants mark Emergency, Urgent, or Normal. Emergency requests sort to the top of your dashboard automatically.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div class="feature-title">Status tracking</div>
+        <div class="feature-desc">Mark requests Open, In Progress, or Resolved. Full audit trail of every action taken on every property, forever.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section">
+  <div class="section-inner">
+    <div class="reveal">
+      <span class="section-eyebrow">Live preview</span>
+      <h2 class="section-title">See Enoch in action</h2>
+    </div>
+
+    <div class="demo-wrapper reveal">
+      <div class="demo-text">
+        <div class="demo-item active" onclick="setDemo(0, this)">
+          <div class="demo-item-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+          <div>
+            <div class="demo-item-title">Tenant submits a request</div>
+            <div class="demo-item-desc">Clean form on any phone. Issue captured in seconds.</div>
+          </div>
+        </div>
+        <div class="demo-item" onclick="setDemo(1, this)">
+          <div class="demo-item-icon"><svg viewBox="0 0 24 24"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg></div>
+          <div>
+            <div class="demo-item-title">Manager gets notified</div>
+            <div class="demo-item-desc">Instant email with all details and urgency level.</div>
+          </div>
+        </div>
+        <div class="demo-item" onclick="setDemo(2, this)">
+          <div class="demo-item-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+          <div>
+            <div class="demo-item-title">Dashboard updates live</div>
+            <div class="demo-item-desc">All requests tracked, sorted, and ready to action.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-screen">
+        <div class="demo-screen-bar">
+          <div class="demo-screen-dot" style="background:#EF4444"></div>
+          <div class="demo-screen-dot" style="background:#F59E0B"></div>
+          <div class="demo-screen-dot" style="background:#22C55E"></div>
+          <span style="font-size:12px; color:var(--text-muted); margin-left:8px" id="demoUrl">enoch-form</span>
+        </div>
+        <div class="demo-screen-content" id="demoContent">
+          <!-- Demo 0: form -->
+          <div style="background:rgba(29,158,117,0.06);border:1px solid rgba(29,158,117,0.15);border-radius:10px;padding:16px;margin-bottom:10px">
+            <div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:12px">Maintenance Request</div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--text-muted)">Emeka Okafor</div>
+            <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--text-muted)">Flat 3B, Block A — Green Valley Estate</div>
+            <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#FCA5A5;display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#EF4444;flex-shrink:0;display:inline-block"></span>
+              Emergency — No water in the apartment
+            </div>
+            <div style="background:var(--green);border-radius:7px;padding:9px 12px;text-align:center;font-size:12px;font-weight:600;color:white">Send Request</div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);text-align:center">Tenant sees confirmation with reference number</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" style="background: var(--bg);">
+  <div class="section-inner">
+    <div class="reveal" style="text-align:center">
+      <span class="section-eyebrow">Pricing</span>
+      <h2 class="section-title">Simple, honest pricing</h2>
+      <p class="section-sub" style="margin: 0 auto">No setup fees. No hidden charges. Cancel anytime. Start free for 30 days.</p>
+    </div>
+
+    <div class="pricing-grid reveal" style="max-width:720px; margin: 56px auto 0; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Monthly</div>
+        <div class="pricing-amt"><span class="pricing-currency">₦</span>20,000<span class="pricing-period">/mo</span></div>
+        <div class="pricing-units">Pay month by month — cancel anytime</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Branded tenant request form</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Instant email notifications</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Auto Google Sheets logging</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Live manager dashboard</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Urgency classification</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Full request history</div>
+        <button class="pricing-btn pricing-btn-outline" onclick="openModal()">Start free 30-day trial</button>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="featured-badge">Save ₦20,000</div>
+        <div class="pricing-tier">Annual</div>
+        <div class="pricing-amt"><span class="pricing-currency">₦</span>220,000<span class="pricing-period">/yr</span></div>
+        <div class="pricing-units" style="color:var(--green);font-weight:500">That's just ₦18,333/month</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Everything in Monthly</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> 2 months free</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Priority email support</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Free onboarding setup</div>
+        <div class="pricing-feature"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> First access to new features</div>
+        <button class="pricing-btn pricing-btn-solid" onclick="openModal()">Get annual plan</button>
+      </div>
+
+    </div>
+    <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-top:20px">30-day free trial on all plans · No credit card required · Setup in minutes</p>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials-section">
+  <div class="section-inner">
+    <div class="reveal" style="text-align:center">
+      <span class="section-eyebrow">Early feedback</span>
+      <h2 class="section-title">Property managers love it</h2>
+    </div>
+
+    <div class="testimonials-grid reveal">
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-text">"Before Enoch, I was managing 3 estates through WhatsApp messages and a notebook. Now everything is tracked automatically. I can't believe I survived without this."</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">AO</div>
+          <div>
+            <div class="testimonial-name">Adebayo Olusanya</div>
+            <div class="testimonial-role">Estate Manager · Lagos Island</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-text">"My tenants actually feel like they're being heard now. They submit a request and get a reference number. It makes me look professional and organised."</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">NN</div>
+          <div>
+            <div class="testimonial-name">Ngozi Nwachukwu</div>
+            <div class="testimonial-role">Property Manager · Abuja</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-text">"The dashboard is the best part. I open it every morning and I know exactly what's going on across all my properties. It saves me at least 3 hours a day."</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">EI</div>
+          <div>
+            <div class="testimonial-name">Emmanuel Ike</div>
+            <div class="testimonial-role">Landlord · 22 units · Port Harcourt</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="reveal">
+    <h2 class="cta-title">Ready to run your properties<br>like a professional?</h2>
+    <p class="cta-sub">Join property managers across Nigeria already using Enoch.<br>Free for 30 days. No card required.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <a class="btn-primary" href="#" onclick="openModal(); return false;" style="font-size:16px;padding:16px 32px">
+        Book a free demo
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+      <a class="btn-secondary" href="https://enochthestar.github.io/enoch-form" target="_blank" style="font-size:16px;padding:16px 32px">See the tenant form</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <div class="footer-logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <span class="footer-name">Enoch</span>
+  </div>
+  <p class="footer-text">Property management, automated. Built for Nigeria & West Africa.</p>
+  <div class="footer-links">
+    <a href="https://enochthestar.github.io/enoch-form" target="_blank">Tenant Form</a>
+    <a href="https://enochthestar.github.io/enoch-dashboard" target="_blank">Dashboard</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#" onclick="openModal(); return false;">Contact</a>
+  </div>
+  <p style="font-size:12px;color:var(--text-muted);margin-top:24px">© 2026 Enoch. All rights reserved.</p>
+</footer>
+
+<!-- DEMO BOOKING MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <div id="modalForm">
+      <h3 class="modal-title">Book a free demo</h3>
+      <p class="modal-sub">We'll show you how Enoch works for your properties and set everything up for you.</p>
+
+      <div class="modal-field">
+        <label>Your full name</label>
+        <input type="text" id="demoName" placeholder="e.g. Emeka Okafor">
+      </div>
+      <div class="modal-field">
+        <label>WhatsApp number</label>
+        <input type="tel" id="demoPhone" placeholder="e.g. 08012345678">
+      </div>
+      <div class="modal-field">
+        <label>Email address</label>
+        <input type="email" id="demoEmail" placeholder="you@example.com">
+      </div>
+      <div class="modal-field">
+        <label>How many units do you manage?</label>
+        <select id="demoUnits">
+          <option value="">Select range...</option>
+          <option>1–10 units</option>
+          <option>11–30 units</option>
+          <option>31–50 units</option>
+          <option>50+ units</option>
+        </select>
+      </div>
+
+      <button class="modal-submit" onclick="submitDemo()">Request free demo →</button>
+    </div>
+
+    <div class="modal-success" id="modalSuccess">
+      <div class="modal-success-icon">✅</div>
+      <div class="modal-success-title">Request received!</div>
+      <p class="modal-success-text">Thank you! The Enoch team will contact you on WhatsApp within 24 hours to schedule your demo.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── MODAL ──
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function submitDemo() {
+  const name = document.getElementById('demoName').value.trim();
+  const phone = document.getElementById('demoPhone').value.trim();
+  if (!name || !phone) {
+    alert('Please enter your name and WhatsApp number.');
+    return;
+  }
+  document.getElementById('modalForm').style.display = 'none';
+  document.getElementById('modalSuccess').style.display = 'block';
+}
+
+// ── DEMO SWITCHER ──
+const demoContents = [
+  {
+    url: 'enoch-form · Tenant Request',
+    html: `
+      <div style="background:rgba(29,158,117,0.06);border:1px solid rgba(29,158,117,0.15);border-radius:10px;padding:16px;margin-bottom:10px">
+        <div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:12px">🏠 Maintenance Request</div>
+        <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--text-muted)">Emeka Okafor</div>
+        <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:var(--text-muted)">Flat 3B — Green Valley Estate</div>
+        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:7px;padding:9px 12px;margin-bottom:8px;font-size:12px;color:#FCA5A5;display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#EF4444;flex-shrink:0;display:inline-block"></span>Emergency — No water supply
+        </div>
+        <div style="background:var(--green);border-radius:7px;padding:9px;text-align:center;font-size:12px;font-weight:600;color:white">Send Request</div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);text-align:center">Tenant receives reference #ENC-4821</div>`
+  },
+  {
+    url: 'Gmail · New notification',
+    html: `
+      <div class="demo-notification demo-notification notif-urgent" style="animation-delay:0s">
+        <div class="notif-dot" style="background:#EF4444"></div>
+        <div><div class="notif-title">[Enoch] 🔴 Emergency — Emeka Okafor</div><div class="notif-desc">Flat 3B · No water supply · Green Valley Estate</div><div class="notif-time">Just now</div></div>
+      </div>
+      <div class="demo-notification" style="animation-delay:0.2s">
+        <div class="notif-dot"></div>
+        <div><div class="notif-title">[Enoch] 🟡 Urgent — Fatima Bello</div><div class="notif-desc">Unit 7A · Electrical fault · Paradise Court</div><div class="notif-time">2 hrs ago</div></div>
+      </div>
+      <div class="demo-notification" style="animation-delay:0.4s">
+        <div class="notif-dot"></div>
+        <div><div class="notif-title">[Enoch] 🟢 Normal — Chidi Eze</div><div class="notif-desc">Block C · Door hinge broken · Sunrise Estate</div><div class="notif-time">5 hrs ago</div></div>
+      </div>`
+  },
+  {
+    url: 'enoch-dashboard · Live view',
+    html: `
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 14px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:#FCA5A5">2</div>
+          <div style="font-size:11px;color:var(--text-muted)">Emergency</div>
+        </div>
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:8px 14px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:#FCD34D">5</div>
+          <div style="font-size:11px;color:var(--text-muted)">Open</div>
+        </div>
+        <div style="background:rgba(29,158,117,0.1);border:1px solid rgba(29,158,117,0.2);border-radius:8px;padding:8px 14px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:var(--green)">12</div>
+          <div style="font-size:11px;color:var(--text-muted)">Resolved</div>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;padding:8px 12px;background:rgba(0,0,0,0.2);font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em">
+          <span>Tenant</span><span>Issue</span><span>Status</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center">
+          <span style="color:var(--white)">Emeka · 3B</span><span style="color:var(--text-muted)">Water</span><span style="background:rgba(239,68,68,0.1);color:#FCA5A5;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Emergency</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center">
+          <span style="color:var(--white)">Fatima · 7A</span><span style="color:var(--text-muted)">Electrical</span><span style="background:rgba(245,158,11,0.1);color:#FCD34D;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Urgent</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;padding:8px 12px;border-top:1px solid var(--border);font-size:12px;align-items:center">
+          <span style="color:var(--white)">Chidi · C2</span><span style="color:var(--text-muted)">Door</span><span style="background:rgba(29,158,117,0.1);color:var(--green);font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600">Resolved</span>
+        </div>
+      </div>`
+  }
+];
+
+function setDemo(index, el) {
+  document.querySelectorAll('.demo-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('demoUrl').textContent = demoContents[index].url;
+  document.getElementById('demoContent').innerHTML = demoContents[index].html;
+}
+
+// ── SCROLL REVEAL ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ── NAV SCROLL ──
+window.addEventListener('scroll', () => {
+  const nav = document.querySelector('nav');
+  nav.style.background = window.scrollY > 20
+    ? 'rgba(6,16,13,0.98)' : 'rgba(6,16,13,0.85)';
+});
+
+// ── KEYBOARD ESC ──
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+</body>
+</html>
